@@ -1,3 +1,5 @@
+github.com/ZachLTech/ansify v0.0.0-20241119045345-3b22379fdd7a h1:2oQGWrUaS4CX5t9aEWN9oMK9YAMLOalyNEzP3ZiFfGI=
+github.com/ZachLTech/ansify v0.0.0-20241119045345-3b22379fdd7a/go.mod h1:FudYcHdIzBIyGIt5+b+TdmIlq/AAQungIssN09N78GU=
 github.com/charmbracelet/bubbletea v0.26.6 h1:zTCWSuST+3yZYZnVSvbXwKOPRSNZceVeqpzOLN2zq1s=
 github.com/charmbracelet/bubbletea v0.26.6/go.mod h1:dz8CWPlfCCGLFbBlTY4N7bjLiyOGDJEnd2Muu7pOWhk=
 github.com/charmbracelet/x/ansi v0.1.2 h1:6+LR39uG8DE6zAmbu023YlqjJHkYXDF1z36ZwzO4xZY=

@@ -3,6 +3,7 @@ module eXit
 go 1.22.5
 
 require (
+	github.com/ZachLTech/ansify v0.0.0-20241119045345-3b22379fdd7a
 	github.com/charmbracelet/bubbletea v0.26.6
 	golang.org/x/image v0.22.0
 	golang.org/x/term v0.26.0

@@ -3,8 +3,8 @@ package main
 import (
 	"fmt"
 	"os"
-	"strings"
 
+	"github.com/ZachLTech/ansify"
 	tea "github.com/charmbracelet/bubbletea"
 )
 
@@ -30,30 +30,22 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		} else if msg.Type == tea.KeyRunes {
 			m.userInput += string(msg.Runes)
 		}
+		if m.userInput == "q" {
+			os.Exit(0)
+		}
 	}
 	return m, nil
 }
 
 func (m model) View() string {
-	// Render the view here
-	terminalHeight := 20                // Assume a fixed height for simplicity
-	artHeight := terminalHeight * 4 / 5 // 80% for ASCII art
-	// inputHeight := terminalHeight / 5   // 20% for input area
+	// Render the view here	// inputHeight := terminalHeight / 5   // 20% for input area
 
-	art := strings.Split(m.asciiArt, "\n")
-	if len(art) > artHeight {
-		art = art[:artHeight] // Trim the art if it's too tall
-	}
-	artArea := strings.Join(art, "\n")
-
-	inputArea := fmt.Sprintf("\n%s", m.userInput) // Add a newline to separate from art
-
-	return artArea + inputArea
+	return ansify.GetAnsify("./assets/eXit.png")
 }
 
 func main() {
 	// Load your ASCII art
-	asciiArt := `Your ASCII art here`
+	asciiArt := ansify.GetAnsify("./assets/eXit.png")
 
 	initialModel := model{asciiArt: asciiArt}
 

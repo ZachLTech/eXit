@@ -1,4 +1,4 @@
-package img2ansi
+package main
 
 import (
 	"fmt"
@@ -73,7 +73,7 @@ func main() {
 		fmt.Printf("error while getting terminal size %v\n", err)
 	}
 
-	image := LoadImage("../assets/congratulations.png")
+	image := LoadImage("../assets/dungeon.png")
 	image = ResizeImage(image, width)
 
 	blockLines := MapToBlocks(image)
