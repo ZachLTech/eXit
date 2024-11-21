@@ -78,6 +78,8 @@ func (m model) handleInput(userInput string) (string, string, []string) {
 		scene = "secretTunnel"
 		prompt = "The barrel rolls aside and you find a secret tunnel\nWhat do you do?"
 		graphic = processANSIArt("./assets/" + scene + ".png")
+	} else if userInput == "move the barrel" || userInput == "move barrel" && m.currentScene == "secretTunnel" {
+
 	}
 
 	return scene, prompt, graphic
