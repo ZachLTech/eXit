@@ -38,6 +38,7 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			}
 		case tea.KeyRunes:
 			if m.currentScene == "eXit" {
+				m.userInput = ""
 				m.currentScene = "dungeon"
 				m.currentScenePrompt = "You're trapped in a dungeon with your friend.\nYou see a barrel. What do you do?"
 				m.currentSceneGraphic = processANSIArt("./assets/" + m.currentScene + ".png")
@@ -72,15 +73,31 @@ func (m model) handleInput(userInput string) (string, string, []string) {
 
 	var scene string
 	var prompt string
-	var graphic []string
 
 	if userInput == "move the barrel" || userInput == "move barrel" && m.currentScene == "dungeon" {
 		scene = "secretTunnel"
-		prompt = "The barrel rolls aside and you find a secret tunnel\nWhat do you do?"
-		graphic = processANSIArt("./assets/" + scene + ".png")
-	} else if userInput == "move the barrel" || userInput == "move barrel" && m.currentScene == "secretTunnel" {
-
+		prompt = "The barrel rolls aside and you find a secret tunnel\nWhat do you do?\n\n>"
+	} else if userInput == "enter the tunnel" || userInput == "enter tunnel" && m.currentScene == "secretTunnel" {
+		scene = "friendTooWeak"
+		prompt = "You start to escape but your friend is too weak to\ngo with you. They hand you a note.\nWhat do you do?\n\n>"
+	} else if userInput == "read the note" || userInput == "read note" && m.currentScene == "friendTooWeak" {
+		scene = "friendHandsNote"
+		prompt = "It is too dark to read the note.\nWhat do you do?\n\n>"
+	} else if userInput == "leave" && m.currentScene == "friendHandsNote" {
+		scene = "beach"
+		prompt = "You crawl through the tunnel and the tunnel leads\nyou to a beach. What do you do?\n\n>"
+	} else if userInput == "look" || userInput == "look around" && m.currentScene == "beach" {
+		scene = "ship"
+		prompt = "In the water you see a boat.\nWhat do you do?\n\n>"
+	} else if userInput == "get on the boat" || userInput == "get on boat" && m.currentScene == "ship" {
+		scene = "congratulations"
+		prompt = "Congratulations, you're heading to a new world!\nDo you want to play again?\n\n>"
+	} else if userInput == "yes" && m.currentScene == "congratulations" {
+		scene = "dungeon"
+		prompt = "You're trapped in a dungeon with your friend. You see a barrel. What do you do?\n\n>"
 	}
+
+	graphic := processANSIArt("./assets/" + scene + ".png")
 
 	return scene, prompt, graphic
 }
