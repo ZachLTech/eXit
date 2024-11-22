@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"os"
 	"strings"
+	"time"
 
 	"os/exec"
 	"runtime"
@@ -15,19 +16,33 @@ import (
 type model struct {
 	currentScene        string
 	currentScenePrompt  string
+	cursorBlink         bool
 	currentSceneGraphic []string
 	userInput           string
 	err                 error
 }
 
+type tickMsg time.Time
+
+const (
+	blinkRate    = time.Millisecond * 500
+	cursorSymbol = "░"
+)
+
 func (m model) Init() tea.Cmd {
-	return nil
+	return tea.Batch(
+		blinkTick(),
+	)
 }
 
 func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	var err error
 
 	switch msg := msg.(type) {
+	case tickMsg:
+		m.cursorBlink = !m.cursorBlink
+		return m, blinkTick()
+
 	case tea.KeyMsg:
 		switch msg.Type {
 		case tea.KeyCtrlC:
@@ -81,6 +96,12 @@ func (m model) View() string {
 	sb.WriteString("\n")
 
 	sb.WriteString(m.currentScenePrompt + m.userInput)
+
+	if m.cursorBlink {
+		sb.WriteString(cursorSymbol)
+	} else {
+		sb.WriteString(" ")
+	}
 
 	if m.err != nil {
 		sb.WriteString(fmt.Sprintf("\nError: %v", m.err))
@@ -141,6 +162,12 @@ func (m model) handleInput(userInput string) (string, string, []string) {
 	}
 
 	return scene, prompt, graphic
+}
+
+func blinkTick() tea.Cmd {
+	return tea.Tick(blinkRate, func(t time.Time) tea.Msg {
+		return tickMsg(t)
+	})
 }
 
 func processANSIArt(imageInput string) ([]string, error) {
