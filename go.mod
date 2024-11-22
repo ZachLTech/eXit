@@ -3,10 +3,8 @@ module eXit
 go 1.22.5
 
 require (
-	github.com/ZachLTech/ansify v0.0.0-20241119045345-3b22379fdd7a
+	github.com/ZachLTech/ansify v0.0.0-20241122033751-2835713deffa
 	github.com/charmbracelet/bubbletea v1.2.3
-	golang.org/x/image v0.22.0
-	golang.org/x/term v0.26.0
 )
 
 require (
@@ -23,7 +21,9 @@ require (
 	github.com/muesli/cancelreader v0.2.2 // indirect
 	github.com/muesli/termenv v0.15.2 // indirect
 	github.com/rivo/uniseg v0.4.7 // indirect
+	golang.org/x/image v0.22.0 // indirect
 	golang.org/x/sync v0.9.0 // indirect
 	golang.org/x/sys v0.27.0 // indirect
+	golang.org/x/term v0.26.0 // indirect
 	golang.org/x/text v0.20.0 // indirect
 )

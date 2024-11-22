@@ -1,5 +1,7 @@
-github.com/ZachLTech/ansify v0.0.0-20241119045345-3b22379fdd7a h1:2oQGWrUaS4CX5t9aEWN9oMK9YAMLOalyNEzP3ZiFfGI=
-github.com/ZachLTech/ansify v0.0.0-20241119045345-3b22379fdd7a/go.mod h1:FudYcHdIzBIyGIt5+b+TdmIlq/AAQungIssN09N78GU=
+github.com/ZachLTech/ansify v0.0.0-20241121154722-ae71ae805e26 h1:iUKnbfqfFS1QFkcBbsNEAYU4Z5x9dt3E9mVfa+gjTls=
+github.com/ZachLTech/ansify v0.0.0-20241121154722-ae71ae805e26/go.mod h1:FudYcHdIzBIyGIt5+b+TdmIlq/AAQungIssN09N78GU=
+github.com/ZachLTech/ansify v0.0.0-20241122033751-2835713deffa h1:3KiVVM8jo5GHzvzR5buZRF7ImC3e91XdKuPLEYktU2k=
+github.com/ZachLTech/ansify v0.0.0-20241122033751-2835713deffa/go.mod h1:FudYcHdIzBIyGIt5+b+TdmIlq/AAQungIssN09N78GU=
 github.com/aymanbagabas/go-osc52/v2 v2.0.1 h1:HwpRHbFMcZLEVr42D4p7XBqjyuxQH5SMiErDT4WkJ2k=
 github.com/aymanbagabas/go-osc52/v2 v2.0.1/go.mod h1:uYgXzlJ7ZpABp8OJ+exZzJJhRNQ2ASbcXHWsFqH8hp8=
 github.com/charmbracelet/bubbletea v1.2.3 h1:d9MdMsANIYZB5pE1KkRqaUV6GfsiWm+/9z4fTuGVm9I=

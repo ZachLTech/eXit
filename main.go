@@ -5,9 +5,11 @@ import (
 	"os"
 	"strings"
 
+	"os/exec"
+	"runtime"
+
 	"github.com/ZachLTech/ansify"
 	tea "github.com/charmbracelet/bubbletea"
-	"golang.org/x/term"
 )
 
 type model struct {
@@ -23,6 +25,7 @@ func (m model) Init() tea.Cmd {
 }
 
 func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
+	var err error
 
 	switch msg := msg.(type) {
 	case tea.KeyMsg:
@@ -30,6 +33,18 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		case tea.KeyCtrlC:
 			return m, tea.Quit
 		case tea.KeyEnter:
+			if m.currentScene == "eXit" {
+				m.userInput = ""
+				m.currentScene = "dungeon"
+				m.currentScenePrompt = "You're trapped in a dungeon with your friend.\nYou see a barrel. What do you do?\n\n> "
+				m.currentSceneGraphic, err = processANSIArt("./assets/" + m.currentScene + ".png")
+				if err != nil {
+					fmt.Printf("Error processing ANSI art: %v\n", err)
+					os.Exit(1)
+				}
+
+				return m, nil
+			}
 			m.currentScene, m.currentScenePrompt, m.currentSceneGraphic = m.handleInput(m.userInput)
 			m.userInput = ""
 		case tea.KeyBackspace:
@@ -40,8 +55,14 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			if m.currentScene == "eXit" {
 				m.userInput = ""
 				m.currentScene = "dungeon"
-				m.currentScenePrompt = "You're trapped in a dungeon with your friend.\nYou see a barrel. What do you do?"
-				m.currentSceneGraphic = processANSIArt("./assets/" + m.currentScene + ".png")
+				m.currentScenePrompt = "You're trapped in a dungeon with your friend.\nYou see a barrel. What do you do?\n\n> "
+				m.currentSceneGraphic, err = processANSIArt("./assets/" + m.currentScene + ".png")
+				if err != nil {
+					fmt.Printf("Error processing ANSI art: %v\n", err)
+					os.Exit(1)
+				}
+
+				return m, nil
 			}
 
 			m.userInput += string(msg.Runes)
@@ -76,64 +97,97 @@ func (m model) handleInput(userInput string) (string, string, []string) {
 
 	if userInput == "move the barrel" || userInput == "move barrel" && m.currentScene == "dungeon" {
 		scene = "secretTunnel"
-		prompt = "The barrel rolls aside and you find a secret tunnel\nWhat do you do?\n\n>"
+		prompt = "The barrel rolls aside and you find a secret tunnel\nWhat do you do?\n\n> "
 	} else if userInput == "enter the tunnel" || userInput == "enter tunnel" && m.currentScene == "secretTunnel" {
 		scene = "friendTooWeak"
-		prompt = "You start to escape but your friend is too weak to\ngo with you. They hand you a note.\nWhat do you do?\n\n>"
+		prompt = "You start to escape but your friend is too weak to\ngo with you. They hand you a note.\nWhat do you do?\n\n> "
 	} else if userInput == "read the note" || userInput == "read note" && m.currentScene == "friendTooWeak" {
 		scene = "friendHandsNote"
-		prompt = "It is too dark to read the note.\nWhat do you do?\n\n>"
-	} else if userInput == "leave" && m.currentScene == "friendHandsNote" {
+		prompt = "It is too dark to read the note.\nWhat do you do?\n\n> "
+	} else if userInput == "leave" && (m.currentScene == "friendHandsNote" || m.currentScene == "friendTooWeak") {
 		scene = "beach"
-		prompt = "You crawl through the tunnel and the tunnel leads\nyou to a beach. What do you do?\n\n>"
+		prompt = "You crawl through the tunnel and the tunnel leads\nyou to a beach. What do you do?\n\n> "
 	} else if userInput == "look" || userInput == "look around" && m.currentScene == "beach" {
 		scene = "ship"
-		prompt = "In the water you see a boat.\nWhat do you do?\n\n>"
-	} else if userInput == "get on the boat" || userInput == "get on boat" && m.currentScene == "ship" {
+		prompt = "In the water you see a boat.\nWhat do you do?\n\n> "
+	} else if userInput == "get on the boat" || userInput == "get on boat" || userInput == "get on" && m.currentScene == "ship" {
 		scene = "congratulations"
-		prompt = "Congratulations, you're heading to a new world!\nDo you want to play again?\n\n>"
+		prompt = "Congratulations, you're heading to a new world!\nDo you want to play again?\n\n> "
 	} else if userInput == "yes" && m.currentScene == "congratulations" {
 		scene = "dungeon"
-		prompt = "You're trapped in a dungeon with your friend. You see a barrel. What do you do?\n\n>"
+		prompt = "You're trapped in a dungeon with your friend. You see a barrel. What do you do?\n\n> "
+	} else if userInput == "no" && m.currentScene == "congratulations" {
+		os.Exit(0)
+	} else if userInput == "sit down next to my friend" || userInput == "sit down next to friend" || userInput == "sit with friend" || userInput == "sit with my friend" && m.currentScene == "dungeon" {
+		scene = "friendHandsNote"
+		prompt = "Your friend hands you a note.\nWhat do you do?\n\n> "
+	} else if userInput == "light a match" || userInput == "light match" && m.currentScene == "friendHandsNote" {
+		scene = "dontLeaveMeHere"
+		prompt = "The note says, \"Don't leave me here.\"\nDo you leave your friend or stay?\n\n> "
+	} else if userInput == "stay" && m.currentScene == "dontLeaveMeHere" {
+		openBrowser("https://www.youtube.com/watch?v=g_Miz2ZqSI4")
+		os.Exit(0)
+	} else if userInput == "leave" && m.currentScene == "dontLeaveMeHere" {
+		scene = "beach"
+		prompt = "You move the barrel, find a secret tunnel, and crawl through it.\nThe tunnel leads you to a beach. What do you do?\n\n> "
+	} else {
+		return m.currentScene, m.currentScenePrompt, m.currentSceneGraphic
 	}
 
-	graphic := processANSIArt("./assets/" + scene + ".png")
+	graphic, err := processANSIArt("./assets/" + scene + ".png")
+	if err != nil {
+		fmt.Printf("Error processing ANSI art: %v\n", err)
+		os.Exit(1)
+	}
 
 	return scene, prompt, graphic
 }
 
-func processANSIArt(imageInput string) []string {
-	width, _, err := term.GetSize(int(os.Stdout.Fd()))
+func processANSIArt(imageInput string) ([]string, error) {
+	ansiStr, err := ansify.GetAnsify(imageInput)
 	if err != nil {
-		return []string{fmt.Sprintf("Error getting terminal size: %v", err)}
+		fmt.Printf("Error loading image: %v\n", err)
+		os.Exit(1)
 	}
 
-	var lines []string
-	var currentLine string
-	count := 0
-
-	ansiStr := ansify.GetAnsify(imageInput)
-
-	for _, char := range ansiStr {
-		currentLine += string(char)
-		if char == '█' {
-			count++
-			if count == width {
-				lines = append(lines, currentLine)
-				currentLine = ""
-				count = 0
-			}
-		}
-	}
-	if currentLine != "" {
-		lines = append(lines, currentLine)
+	if ansiStr == "" {
+		return nil, fmt.Errorf("empty ANSI string received")
 	}
 
-	return lines
+	lines := strings.Split(ansiStr, "\n")
+	if len(lines) == 0 {
+		return nil, fmt.Errorf("no lines found in ANSI art")
+	}
+
+	return lines, nil
+}
+
+func openBrowser(url string) error {
+	var err error
+
+	switch runtime.GOOS {
+	case "linux":
+		err = exec.Command("xdg-open", url).Start()
+	case "windows":
+		err = exec.Command("cmd", "/c", "start", url).Start()
+	case "darwin":
+		err = exec.Command("open", url).Start()
+	default:
+		err = fmt.Errorf("unsupported platform")
+	}
+
+	if err != nil {
+		return fmt.Errorf("error opening browser: %v", err)
+	}
+	return nil
 }
 
 func main() {
-	initialScene := processANSIArt("./assets/eXit.png")
+	initialScene, err := processANSIArt("./assets/eXit.png")
+	if err != nil {
+		fmt.Printf("Error processing ANSI art: %v\n", err)
+		os.Exit(1)
+	}
 
 	initialModel := model{
 		currentScene:        "eXit",
