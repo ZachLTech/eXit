@@ -58,6 +58,8 @@ var animationFramerate = map[string]time.Duration{
 	"end":             100,
 }
 
+var enteredTunnel bool = false
+
 func (m model) Init() tea.Cmd {
 	return tea.Batch(
 		tickAnimation("start"),
@@ -191,14 +193,17 @@ func (m model) handleInput(userInput string) (string, string, []string, tea.Cmd)
 	if userInput == "move the barrel" || userInput == "move barrel" && m.currentScene == "dungeon" {
 		scene = "secretTunnel"
 	} else if userInput == "enter the tunnel" || userInput == "enter tunnel" && m.currentScene == "secretTunnel" {
+		enteredTunnel = true
 		scene = "friendTooWeak"
 	} else if userInput == "read the note" || userInput == "read note" && m.currentScene == "friendTooWeak" {
 		scene = "friendHandsNote"
 	} else if userInput == "leave" && (m.currentScene == "friendHandsNote" || m.currentScene == "friendTooWeak" || m.currentScene == "dontLeaveMeHere") {
 		scene = "beach"
-		if m.currentScene == "dontLeaveMeHere" {
-			customPrompt = true
-			prompt = "You move the barrel, find a secret tunnel, and crawl through it.\nThe tunnel leads you to a beach. What do you do?\n\n> "
+		if m.currentScene == "dontLeaveMeHere" || m.currentScene == "friendHandsNote" {
+			if !enteredTunnel {
+				customPrompt = true
+				prompt = "You move the barrel, find a secret tunnel, and crawl through it.\nThe tunnel leads you to a beach. What do you do?\n\n> "
+			}
 		}
 	} else if userInput == "look" || userInput == "look around" && m.currentScene == "beach" {
 		scene = "ship"
@@ -206,6 +211,7 @@ func (m model) handleInput(userInput string) (string, string, []string, tea.Cmd)
 		scene = "congratulations"
 		cmd = tickAnimation(scene)
 	} else if userInput == "yes" && m.currentScene == "congratulations" {
+		enteredTunnel = false
 		scene = "dungeon"
 	} else if userInput == "no" && m.currentScene == "congratulations" {
 		os.Exit(0)
