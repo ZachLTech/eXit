@@ -3,6 +3,7 @@ package main
 import (
 	"fmt"
 	"os"
+	"regexp"
 	"strconv"
 	"strings"
 	"time"
@@ -19,6 +20,7 @@ type model struct {
 	currentScenePrompt  string
 	cursorBlink         bool
 	animationStep       int
+	animationFrameLen   int
 	currentSceneGraphic []string
 	userInput           string
 	err                 error
@@ -28,9 +30,8 @@ type tickMsg time.Time
 type animationTickMsg time.Time
 
 const (
-	blinkRate         = time.Millisecond * 500
-	cursorSymbol      = "░"
-	animationStepRate = time.Millisecond * 200
+	blinkRate    = time.Millisecond * 500
+	cursorSymbol = "░"
 )
 
 var prompts = map[string]string{
@@ -44,8 +45,22 @@ var prompts = map[string]string{
 	"dontLeaveMeHere": "The note says, \"Don't leave me here.\"\nDo you leave your friend or stay?\n\n> ",
 }
 
+var animationFrames = map[string]int{
+	"congratulations": 2,
+	"start":           34,
+	"end":             11,
+}
+
+// milliseconds per frame
+var animationFramerate = map[string]time.Duration{
+	"congratulations": 500,
+	"start":           100,
+	"end":             100,
+}
+
 func (m model) Init() tea.Cmd {
 	return tea.Batch(
+		tickAnimation("start"),
 		blinkTick(),
 	)
 }
@@ -56,28 +71,37 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 
 	switch msg := msg.(type) {
 	case animationTickMsg:
-		if m.animationStep != 2 {
+		m.animationFrameLen = animationFrames[m.currentScene]
+		if m.animationStep != m.animationFrameLen {
 			m.animationStep++
 			m.userInput = ""
-			m.currentScene = m.currentScene + strconv.Itoa(m.animationStep)
 			m.currentScenePrompt = m.handleAnimationInput(m.currentScene)
 
-			sceneNameLen := len(m.currentScene)
-			m.currentScene = m.currentScene[:sceneNameLen-1]
-
-			m.currentSceneGraphic, err = processANSIArt("./assets/" + m.currentScene + strconv.Itoa(m.animationStep+1) + ".png")
+			m.currentSceneGraphic, err = processANSIArt("./assets/animations/" + m.currentScene + "/" + m.currentScene + strconv.Itoa(m.animationStep+1) + ".png")
 			if err != nil {
 				fmt.Printf("Error processing ANSI art: %v\n", err)
 				os.Exit(1)
 			}
 
-			return m, tickAnimation()
+			re := regexp.MustCompile(`\d`)
+			m.currentScene = re.ReplaceAllString(m.currentScene, "")
+
+			return m, tickAnimation(m.currentScene)
 		} else {
 			m.animationStep = 0
-			sceneNameLen := len(m.currentScene)
+			m.animationFrameLen = 0
+			m.currentSceneGraphic, err = processANSIArt("./assets/animations/" + m.currentScene + "/" + m.currentScene + ".png")
+			if err != nil {
+				fmt.Printf("Error processing ANSI art: %v\n", err)
+				os.Exit(1)
+			}
 
-			if sceneNameLen > 0 && m.currentScene[sceneNameLen-1] == '3' {
-				m.currentScene = m.currentScene[:sceneNameLen-1]
+			// exceptions
+			if m.currentScene == "start" {
+				m.currentScenePrompt = "PRESS ANY KEY TO START"
+			} else if m.currentScene == "end" { // Now I can put anything here whenever the user reaches the real ending ;)... this will do for now hehehe
+				openBrowser("https://www.youtube.com/watch?v=g_Miz2ZqSI4")
+				os.Exit(0)
 			}
 
 			return m, nil
@@ -92,7 +116,7 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		case tea.KeyCtrlC:
 			return m, tea.Quit
 		case tea.KeyEnter:
-			if m.currentScene == "eXit" {
+			if m.currentScene == "start" && m.animationFrameLen == 0 {
 				m.userInput = ""
 				m.currentScene = "dungeon"
 				m.currentScenePrompt = "You're trapped in a dungeon with your friend.\nYou see a barrel. What do you do?\n\n> "
@@ -111,7 +135,7 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 				m.userInput = m.userInput[:len(m.userInput)-1]
 			}
 		case tea.KeyRunes:
-			if m.currentScene == "eXit" {
+			if m.currentScene == "start" && m.animationFrameLen == 0 {
 				m.userInput = ""
 				m.currentScene = "dungeon"
 				m.currentScenePrompt = "You're trapped in a dungeon with your friend.\nYou see a barrel. What do you do?\n\n> "
@@ -162,8 +186,7 @@ func (m model) handleInput(userInput string) (string, string, []string, tea.Cmd)
 	var graphic []string
 	var err error
 	var cmd tea.Cmd = nil
-
-	customPrompt := "You move the barrel, find a secret tunnel, and crawl through it.\nThe tunnel leads you to a beach. What do you do?\n\n> "
+	customPrompt := false
 
 	if userInput == "move the barrel" || userInput == "move barrel" && m.currentScene == "dungeon" {
 		scene = "secretTunnel"
@@ -171,33 +194,38 @@ func (m model) handleInput(userInput string) (string, string, []string, tea.Cmd)
 		scene = "friendTooWeak"
 	} else if userInput == "read the note" || userInput == "read note" && m.currentScene == "friendTooWeak" {
 		scene = "friendHandsNote"
-	} else if userInput == "leave" && (m.currentScene == "friendHandsNote" || m.currentScene == "friendTooWeak") {
+	} else if userInput == "leave" && (m.currentScene == "friendHandsNote" || m.currentScene == "friendTooWeak" || m.currentScene == "dontLeaveMeHere") {
 		scene = "beach"
+		if m.currentScene == "dontLeaveMeHere" {
+			customPrompt = true
+			prompt = "You move the barrel, find a secret tunnel, and crawl through it.\nThe tunnel leads you to a beach. What do you do?\n\n> "
+		}
 	} else if userInput == "look" || userInput == "look around" && m.currentScene == "beach" {
 		scene = "ship"
 	} else if userInput == "get on the boat" || userInput == "get on boat" || userInput == "get on" && m.currentScene == "ship" {
 		scene = "congratulations"
-		cmd = tickAnimation()
+		cmd = tickAnimation(scene)
 	} else if userInput == "yes" && m.currentScene == "congratulations" {
 		scene = "dungeon"
 	} else if userInput == "no" && m.currentScene == "congratulations" {
 		os.Exit(0)
-	} else if userInput == "sit down next to my friend" || userInput == "sit down next to friend" || userInput == "sit with friend" || userInput == "sit with my friend" && m.currentScene == "dungeon" {
+	} else if userInput == "sit down next to my friend" || userInput == "sit next to friend" || userInput == "sit next to my friend" || userInput == "sit down next to friend" || userInput == "sit with friend" || userInput == "sit with my friend" && m.currentScene == "dungeon" {
 		scene = "friendHandsNote"
+		if m.currentScene == "dungeon" {
+			customPrompt = true
+			prompt = "Your friend hands you a note, but it is too dark to read.\nWhat do you do?\n\n> "
+		}
 	} else if userInput == "light a match" || userInput == "light match" && m.currentScene == "friendHandsNote" {
 		scene = "dontLeaveMeHere"
 	} else if userInput == "stay" && m.currentScene == "dontLeaveMeHere" {
-		openBrowser("https://www.youtube.com/watch?v=g_Miz2ZqSI4")
-		os.Exit(0)
-	} else if userInput == "leave" && m.currentScene == "dontLeaveMeHere" {
-		scene = "beach"
-		prompt = customPrompt
+		scene = "end"
+		cmd = tickAnimation(scene)
 	} else {
 		return m.currentScene, m.currentScenePrompt, m.currentSceneGraphic, nil
 	}
 
 	if cmd != nil {
-		graphic, err = processANSIArt("./assets/" + scene + "1.png")
+		graphic, err = processANSIArt("./assets/animations/" + scene + "/" + scene + "1.png")
 	} else {
 		graphic, err = processANSIArt("./assets/" + scene + ".png")
 	}
@@ -206,7 +234,7 @@ func (m model) handleInput(userInput string) (string, string, []string, tea.Cmd)
 		os.Exit(1)
 	}
 
-	if prompt != customPrompt {
+	if !customPrompt {
 		prompt = prompts[scene]
 	}
 
@@ -228,8 +256,8 @@ func blinkTick() tea.Cmd {
 	})
 }
 
-func tickAnimation() tea.Cmd {
-	return tea.Tick(animationStepRate, func(t time.Time) tea.Msg {
+func tickAnimation(animationName string) tea.Cmd {
+	return tea.Tick((time.Millisecond * animationFramerate[animationName]), func(t time.Time) tea.Msg {
 		return animationTickMsg(t)
 	})
 }
@@ -274,16 +302,8 @@ func openBrowser(url string) error {
 }
 
 func main() {
-	initialScene, err := processANSIArt("./assets/eXit.png")
-	if err != nil {
-		fmt.Printf("Error processing ANSI art: %v\n", err)
-		os.Exit(1)
-	}
-
 	initialModel := model{
-		currentScene:        "eXit",
-		currentScenePrompt:  "PRESS ANY KEY TO START",
-		currentSceneGraphic: initialScene,
+		currentScene: "start",
 	}
 
 	p := tea.NewProgram(initialModel, tea.WithAltScreen())
