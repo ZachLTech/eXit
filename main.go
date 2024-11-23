@@ -29,10 +29,12 @@ type model struct {
 type tickMsg time.Time
 type animationTickMsg time.Time
 
-const (
-	blinkRate    = time.Millisecond * 500
-	cursorSymbol = "░"
-)
+const cursorBlinkRate = time.Millisecond * 500
+
+var enteredTunnel bool = false
+var isElliot bool = false
+var restartCount int = 0
+var cursorSymbol string = "░"
 
 var prompts = map[string]string{
 	"dungeon":         "You're trapped in a dungeon with your friend. You see a barrel. What do you do?\n\n> ",
@@ -58,8 +60,6 @@ var animationFramerate = map[string]time.Duration{
 	"end":             100,
 }
 
-var enteredTunnel bool = false
-
 func (m model) Init() tea.Cmd {
 	return tea.Batch(
 		tickAnimation("start"),
@@ -74,6 +74,7 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	switch msg := msg.(type) {
 	case animationTickMsg:
 		m.animationFrameLen = animationFrames[m.currentScene]
+		cursorSymbol = ""
 		if m.animationStep != m.animationFrameLen {
 			m.animationStep++
 			m.userInput = ""
@@ -90,6 +91,7 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 
 			return m, tickAnimation(m.currentScene)
 		} else {
+			cursorSymbol = "░"
 			m.animationStep = 0
 			m.animationFrameLen = 0
 			m.currentSceneGraphic, err = processANSIArt("./assets/animations/" + m.currentScene + "/" + m.currentScene + ".png")
@@ -101,7 +103,9 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			// exceptions
 			if m.currentScene == "start" {
 				m.currentScenePrompt = "PRESS ANY KEY TO START"
+				cursorSymbol = ""
 			} else if m.currentScene == "end" { // Now I can put anything here whenever the user reaches the real ending ;)... this will do for now hehehe
+				fmt.Printf("Hello Elliot... Redirecting to https://www.youtube.com/watch?v=g_Miz2ZqSI4")
 				openBrowser("https://www.youtube.com/watch?v=g_Miz2ZqSI4")
 				os.Exit(0)
 			}
@@ -119,6 +123,7 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			return m, tea.Quit
 		case tea.KeyEnter:
 			if m.currentScene == "start" && m.animationFrameLen == 0 {
+				cursorSymbol = "░"
 				m.userInput = ""
 				m.currentScene = "dungeon"
 				m.currentScenePrompt = "You're trapped in a dungeon with your friend.\nYou see a barrel. What do you do?\n\n> "
@@ -138,6 +143,7 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			}
 		case tea.KeyRunes:
 			if m.currentScene == "start" && m.animationFrameLen == 0 {
+				cursorSymbol = "░"
 				m.userInput = ""
 				m.currentScene = "dungeon"
 				m.currentScenePrompt = "You're trapped in a dungeon with your friend.\nYou see a barrel. What do you do?\n\n> "
@@ -210,10 +216,14 @@ func (m model) handleInput(userInput string) (string, string, []string, tea.Cmd)
 	} else if userInput == "get on the boat" || userInput == "get on boat" || userInput == "get on" && m.currentScene == "ship" {
 		scene = "congratulations"
 		cmd = tickAnimation(scene)
-	} else if userInput == "yes" && m.currentScene == "congratulations" {
+	} else if userInput == "yes" && (m.currentScene == "congratulations" || m.currentScene == "sadEnding") {
+		restartCount++
 		enteredTunnel = false
+		if m.currentScene == "congratulations" {
+			isElliot = true
+		}
 		scene = "dungeon"
-	} else if userInput == "no" && m.currentScene == "congratulations" {
+	} else if userInput == "no" && (m.currentScene == "congratulations" || m.currentScene == "sadEnding") {
 		os.Exit(0)
 	} else if userInput == "sit down next to my friend" || userInput == "sit next to friend" || userInput == "sit next to my friend" || userInput == "sit down next to friend" || userInput == "sit with friend" || userInput == "sit with my friend" && m.currentScene == "dungeon" {
 		scene = "friendHandsNote"
@@ -224,15 +234,21 @@ func (m model) handleInput(userInput string) (string, string, []string, tea.Cmd)
 	} else if userInput == "light a match" || userInput == "light match" && m.currentScene == "friendHandsNote" {
 		scene = "dontLeaveMeHere"
 	} else if userInput == "stay" && m.currentScene == "dontLeaveMeHere" {
-		scene = "end"
-		cmd = tickAnimation(scene)
+		if restartCount == 1 && !enteredTunnel && isElliot {
+			scene = "end"
+			cmd = tickAnimation(scene)
+		} else {
+			scene = "sadEnding"
+			customPrompt = true
+			prompt = "Your friend is happy that you stayed...\nSoon you and your friend died due to starvation.\nDo you want to play again?\n\n> "
+		}
 	} else {
 		return m.currentScene, m.currentScenePrompt, m.currentSceneGraphic, nil
 	}
 
-	if cmd != nil {
+	if cmd != nil && scene != "sadEnding" {
 		graphic, err = processANSIArt("./assets/animations/" + scene + "/" + scene + "1.png")
-	} else {
+	} else if scene != "sadEnding" {
 		graphic, err = processANSIArt("./assets/" + scene + ".png")
 	}
 	if err != nil {
@@ -257,7 +273,7 @@ func (m model) handleAnimationInput(scene string) string {
 }
 
 func blinkTick() tea.Cmd {
-	return tea.Tick(blinkRate, func(t time.Time) tea.Msg {
+	return tea.Tick(cursorBlinkRate, func(t time.Time) tea.Msg {
 		return tickMsg(t)
 	})
 }
