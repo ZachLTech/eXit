@@ -267,6 +267,7 @@ func (m model) handleInput(userInput string) (string, string, []string, int, tea
 		graphic, err = processANSIArt("./assets/animations/" + scene + "/" + scene + "1.png")
 	} else if scene != "sadEnding" {
 		graphicLen = len(graphic)
+		cmd = tickRender()
 		// graphic, err = processANSIArt("./assets/" + scene + ".png")
 	}
 	if err != nil {
