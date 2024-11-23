@@ -82,15 +82,27 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	case renderTickMsg:
 		m.fullSceneGraphic = m.currentSceneGraphic
 		m.currentSceneGraphic = []string{}
+		remainingGraphic := len(m.fullSceneGraphic)		
+
+		if remainingGraphic <= 2 {
+			for i := 0; i < remainingGraphic; i++ {
+				m.currentSceneGraphic = append(m.currentSceneGraphic, m.fullSceneGraphic[i])
+			} 
+
+			return m, nil
+		}
 
 		for i := 0.0; i < math.Floor(float64(m.animationFrameLen)*0.3); i++ {
 			m.currentSceneGraphic = append(m.currentSceneGraphic, m.fullSceneGraphic[int(i)])
 			m.fullSceneGraphic = m.fullSceneGraphic[1:]
 		}
 
+		return m, tickRender()
+
 	case animationTickMsg:
 		m.animationFrameLen = animationFrames[m.currentScene]
 		cursorSymbol = ""
+		var cmd tea.Cmd = nil
 		if m.animationStep != m.animationFrameLen {
 			m.animationStep++
 			m.userInput = ""
@@ -119,6 +131,7 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			// exceptions
 			if m.currentScene == "start" {
 				m.currentScenePrompt = "PRESS ANY KEY TO START"
+				cmd = tickRender()
 				cursorSymbol = ""
 			} else if m.currentScene == "end" { // Now I can put anything here whenever the user reaches the real ending ;)... this will do for now hehehe
 				fmt.Printf("Hello Elliot... Redirecting to https://www.youtube.com/watch?v=g_Miz2ZqSI4")
@@ -126,7 +139,7 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 				os.Exit(0)
 			}
 
-			return m, nil
+			return m, cmd
 		}
 
 	case tickMsg:
@@ -213,7 +226,7 @@ func (m model) handleInput(userInput string) (string, string, []string, int, tea
 	var cmd tea.Cmd = nil
 	customPrompt := false
 
-	if userInput == "move the barrel" || userInput == "move barrel" && m.currentScene == "dungeon" {
+	if userInput == "move the barrel" || userInput == "movebarrel" || userInput == "move barrel" && m.currentScene == "dungeon" {
 		scene = "secretTunnel"
 	} else if userInput == "enter the tunnel" || userInput == "enter tunnel" && m.currentScene == "secretTunnel" {
 		enteredTunnel = true
