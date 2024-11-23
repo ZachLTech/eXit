@@ -2,6 +2,7 @@ package main
 
 import (
 	"fmt"
+	"math"
 	"os"
 	"regexp"
 	"strconv"
@@ -22,14 +23,20 @@ type model struct {
 	animationStep       int
 	animationFrameLen   int
 	currentSceneGraphic []string
+	fullSceneGraphic    []string
+	sceneGraphicLen     int
 	userInput           string
 	err                 error
 }
 
 type tickMsg time.Time
+type renderTickMsg time.Time
 type animationTickMsg time.Time
 
-const cursorBlinkRate = time.Millisecond * 500
+const (
+	cursorBlinkRate = time.Millisecond * 500
+	renderSpeed     = time.Millisecond * 250
+)
 
 var enteredTunnel bool = false
 var isElliot bool = false
@@ -72,6 +79,15 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	var cmd tea.Cmd
 
 	switch msg := msg.(type) {
+	case renderTickMsg:
+		m.fullSceneGraphic = m.currentSceneGraphic
+		m.currentSceneGraphic = []string{}
+
+		for i := 0.0; i < math.Floor(float64(m.animationFrameLen)*0.3); i++ {
+			m.currentSceneGraphic = append(m.currentSceneGraphic, m.fullSceneGraphic[int(i)])
+			m.fullSceneGraphic = m.fullSceneGraphic[1:]
+		}
+
 	case animationTickMsg:
 		m.animationFrameLen = animationFrames[m.currentScene]
 		cursorSymbol = ""
@@ -135,7 +151,7 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 
 				return m, nil
 			}
-			m.currentScene, m.currentScenePrompt, m.currentSceneGraphic, cmd = m.handleInput(m.userInput)
+			m.currentScene, m.currentScenePrompt, m.currentSceneGraphic, m.sceneGraphicLen, cmd = m.handleInput(m.userInput)
 			m.userInput = ""
 		case tea.KeyBackspace:
 			if len(m.userInput) > 0 {
@@ -186,12 +202,13 @@ func (m model) View() string {
 	return sb.String()
 }
 
-func (m model) handleInput(userInput string) (string, string, []string, tea.Cmd) {
+func (m model) handleInput(userInput string) (string, string, []string, int, tea.Cmd) {
 	userInput = strings.ToLower(strings.TrimSpace(userInput))
 
 	var scene string
 	var prompt string
 	var graphic []string
+	var graphicLen int
 	var err error
 	var cmd tea.Cmd = nil
 	customPrompt := false
@@ -243,13 +260,14 @@ func (m model) handleInput(userInput string) (string, string, []string, tea.Cmd)
 			prompt = "Your friend is happy that you stayed...\nSoon you and your friend died due to starvation.\nDo you want to play again?\n\n> "
 		}
 	} else {
-		return m.currentScene, m.currentScenePrompt, m.currentSceneGraphic, nil
+		return m.currentScene, m.currentScenePrompt, m.currentSceneGraphic, m.sceneGraphicLen, nil
 	}
 
 	if cmd != nil && scene != "sadEnding" {
 		graphic, err = processANSIArt("./assets/animations/" + scene + "/" + scene + "1.png")
 	} else if scene != "sadEnding" {
-		graphic, err = processANSIArt("./assets/" + scene + ".png")
+		graphicLen = len(graphic)
+		// graphic, err = processANSIArt("./assets/" + scene + ".png")
 	}
 	if err != nil {
 		fmt.Printf("Error processing ANSI art: %v\n", err)
@@ -260,7 +278,7 @@ func (m model) handleInput(userInput string) (string, string, []string, tea.Cmd)
 		prompt = prompts[scene]
 	}
 
-	return scene, prompt, graphic, cmd
+	return scene, prompt, graphic, graphicLen, cmd
 }
 
 func (m model) handleAnimationInput(scene string) string {
@@ -281,6 +299,12 @@ func blinkTick() tea.Cmd {
 func tickAnimation(animationName string) tea.Cmd {
 	return tea.Tick((time.Millisecond * animationFramerate[animationName]), func(t time.Time) tea.Msg {
 		return animationTickMsg(t)
+	})
+}
+
+func tickRender() tea.Cmd {
+	return tea.Tick(renderSpeed, func(t time.Time) tea.Msg {
+		return renderTickMsg(t)
 	})
 }
 
