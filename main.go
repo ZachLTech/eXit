@@ -155,7 +155,6 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 
 				return m, cmd
 			}
-			m.animating = true
 			m.currentScene, m.currentScenePrompt, m.currentSceneGraphic, m.animating, cmd = m.handleInput(m.userInput)
 			m.userInput = ""
 		case tea.KeyBackspace:
