@@ -1,11 +1,16 @@
 package main
 
 import (
+	"context"
+	"errors"
 	"fmt"
+	"net"
 	"os"
+	"os/signal"
 	"regexp"
 	"strconv"
 	"strings"
+	"syscall"
 	"time"
 
 	"os/exec"
@@ -13,7 +18,65 @@ import (
 
 	"github.com/ZachLTech/ansify"
 	tea "github.com/charmbracelet/bubbletea"
+	"github.com/charmbracelet/log"
+	"github.com/charmbracelet/ssh"
+	"github.com/charmbracelet/wish"
+	"github.com/charmbracelet/wish/activeterm"
+	"github.com/charmbracelet/wish/bubbletea"
+	"github.com/charmbracelet/wish/logging"
 )
+
+const (
+	host = "localhost"
+	port = "23234"
+)
+
+func main() {
+	s, err := wish.NewServer(
+		wish.WithAddress(net.JoinHostPort(host, port)),
+
+		// Allocate a pty.
+		// This creates a pseudoconsole on windows, compatibility is limited in
+		// that case, see the open issues for more details.
+		ssh.AllocatePty(),
+		wish.WithMiddleware(
+			// run our Bubble Tea handler
+			bubbletea.Middleware(teaHandler),
+
+			// ensure the user has requested a tty
+			activeterm.Middleware(),
+			logging.Middleware(),
+		),
+	)
+	if err != nil {
+		log.Error("Could not start server", "error", err)
+	}
+
+	done := make(chan os.Signal, 1)
+	signal.Notify(done, os.Interrupt, syscall.SIGINT, syscall.SIGTERM)
+	log.Info("Starting SSH server", "host", host, "port", port)
+	go func() {
+		if err = s.ListenAndServe(); err != nil && !errors.Is(err, ssh.ErrServerClosed) {
+			log.Error("Could not start server", "error", err)
+			done <- nil
+		}
+	}()
+
+	<-done
+	log.Info("Stopping SSH server")
+	ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
+	defer func() { cancel() }()
+	if err := s.Shutdown(ctx); err != nil && !errors.Is(err, ssh.ErrServerClosed) {
+		log.Error("Could not stop server", "error", err)
+	}
+}
+
+func teaHandler(s ssh.Session) (tea.Model, []tea.ProgramOption) {
+	m := model{
+		currentScene: "start",
+	}
+	return m, []tea.ProgramOption{tea.WithAltScreen()}
+}
 
 type model struct {
 	currentScene        string
@@ -337,14 +400,14 @@ func openBrowser(url string) error {
 	return nil
 }
 
-func main() {
-	initialModel := model{
-		currentScene: "start",
-	}
+// func main() {
+// 	initialModel := model{
+// 		currentScene: "start",
+// 	}
 
-	p := tea.NewProgram(initialModel, tea.WithAltScreen())
-	if _, err := p.Run(); err != nil {
-		fmt.Printf("Error running program: %v", err)
-		os.Exit(1)
-	}
-}
+// 	p := tea.NewProgram(initialModel, tea.WithAltScreen())
+// 	if _, err := p.Run(); err != nil {
+// 		fmt.Printf("Error running program: %v", err)
+// 		os.Exit(1)
+// 	}
+// }
