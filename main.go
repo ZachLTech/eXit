@@ -37,8 +37,6 @@ func main() {
 
 		// Allocate a pty.
 		// This creates a pseudoconsole on windows, compatibility is limited in
-		// that case, see the open issues for more details.
-		ssh.AllocatePty(),
 		wish.WithMiddleware(
 			// run our Bubble Tea handler
 			bubbletea.Middleware(teaHandler),
@@ -75,7 +73,7 @@ func teaHandler(s ssh.Session) (tea.Model, []tea.ProgramOption) {
 	m := model{
 		currentScene: "start",
 	}
-	return m, []tea.ProgramOption{tea.WithAltScreen()}
+	return m, []tea.ProgramOption{tea.WithAltScreen(), tea.WithInput(os.Stdin)}
 }
 
 type model struct {
@@ -88,6 +86,7 @@ type model struct {
 	currentSceneGraphic []string
 	userInput           string
 	err                 error
+	termWidth           int
 }
 
 type tickMsg time.Time
@@ -160,7 +159,7 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			m.animationStep++
 			m.userInput = ""
 
-			m.currentSceneGraphic, err = processANSIArt("./assets/animations/" + m.currentScene + "/" + m.currentScene + strconv.Itoa(m.animationStep+1) + ".png")
+			m.currentSceneGraphic, err = processANSIArt("./assets/animations/"+m.currentScene+"/"+m.currentScene+strconv.Itoa(m.animationStep+1)+".png", m.termWidth)
 			if err != nil {
 				fmt.Printf("Error processing ANSI art: %v\n", err)
 				os.Exit(1)
@@ -174,7 +173,7 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			cursorSymbol = "░"
 			m.animationStep = 0
 			m.animationFrameLen = 0
-			m.currentSceneGraphic, err = processANSIArt("./assets/animations/" + m.currentScene + "/" + m.currentScene + ".png")
+			m.currentSceneGraphic, err = processANSIArt("./assets/animations/"+m.currentScene+"/"+m.currentScene+".png", m.termWidth)
 			if err != nil {
 				fmt.Printf("Error processing ANSI art: %v\n", err)
 				os.Exit(1)
@@ -198,6 +197,19 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		m.cursorBlink = !m.cursorBlink
 		return m, blinkTick()
 
+	case tea.WindowSizeMsg:
+		m.termWidth = msg.Width
+		if m.animating {
+			m.currentSceneGraphic, err = processANSIArt("./assets/animations/"+m.currentScene+"/"+m.currentScene+strconv.Itoa(m.animationStep+1)+".png", m.termWidth)
+		} else {
+			m.currentSceneGraphic, err = processANSIArt("./assets/animations/"+m.currentScene+"/"+m.currentScene+".png", m.termWidth)
+		}
+		if err != nil {
+			fmt.Printf("Error processing ANSI art: %v\n", err)
+			os.Exit(1)
+		}
+
+		return m, nil
 	case tea.KeyMsg:
 		switch msg.Type {
 		case tea.KeyCtrlC:
@@ -208,7 +220,7 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 				m.userInput = ""
 				m.currentScene = "dungeon"
 				m.currentScenePrompt = "You're trapped in a dungeon with your friend.\nYou see a barrel. What do you do?\n\n> "
-				m.currentSceneGraphic, err = processANSIArt("./assets/animations/" + m.currentScene + "/" + m.currentScene + "1.png")
+				m.currentSceneGraphic, err = processANSIArt("./assets/animations/"+m.currentScene+"/"+m.currentScene+"1.png", m.termWidth)
 				if err != nil {
 					fmt.Printf("Error processing ANSI art: %v\n", err)
 					os.Exit(1)
@@ -224,13 +236,32 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			if len(m.userInput) > 0 {
 				m.userInput = m.userInput[:len(m.userInput)-1]
 			}
+
+		case tea.KeySpace:
+			if m.currentScene == "start" && m.animationFrameLen == 0 {
+				cursorSymbol = "░"
+				m.userInput = ""
+				m.currentScene = "dungeon"
+				m.currentScenePrompt = "You're trapped in a dungeon with your friend.\nYou see a barrel. What do you do?\n\n> "
+				m.currentSceneGraphic, err = processANSIArt("./assets/animations/"+m.currentScene+"/"+m.currentScene+"1.png", m.termWidth)
+				if err != nil {
+					fmt.Printf("Error processing ANSI art: %v\n", err)
+					os.Exit(1)
+				}
+				m.animating = true
+				cmd = tickAnimation(m.currentScene)
+
+				return m, cmd
+			}
+			m.userInput += " "
+
 		case tea.KeyRunes:
 			if m.currentScene == "start" && m.animationFrameLen == 0 {
 				cursorSymbol = "░"
 				m.userInput = ""
 				m.currentScene = "dungeon"
 				m.currentScenePrompt = "You're trapped in a dungeon with your friend.\nYou see a barrel. What do you do?\n\n> "
-				m.currentSceneGraphic, err = processANSIArt("./assets/animations/" + m.currentScene + "/" + m.currentScene + "1.png")
+				m.currentSceneGraphic, err = processANSIArt("./assets/animations/"+m.currentScene+"/"+m.currentScene+"1.png", m.termWidth)
 				if err != nil {
 					fmt.Printf("Error processing ANSI art: %v\n", err)
 					os.Exit(1)
@@ -333,7 +364,7 @@ func (m model) handleInput(userInput string) (string, string, []string, bool, te
 	}
 
 	if scene != "sadEnding" {
-		graphic, err = processANSIArt("./assets/animations/" + scene + "/" + scene + "1.png")
+		graphic, err = processANSIArt("./assets/animations/"+scene+"/"+scene+"1.png", m.termWidth)
 		if err != nil {
 			fmt.Printf("Error processing ANSI art: %v\n", err)
 			os.Exit(1)
@@ -361,8 +392,8 @@ func tickAnimation(animationName string) tea.Cmd {
 	})
 }
 
-func processANSIArt(imageInput string) ([]string, error) {
-	ansiStr, err := ansify.GetAnsify(imageInput)
+func processANSIArt(imageInput string, termWidth int) ([]string, error) {
+	ansiStr, err := ansify.GetAnsifyCustomWidth(imageInput, termWidth)
 	if err != nil {
 		fmt.Printf("Error loading image: %v\n", err)
 		os.Exit(1)

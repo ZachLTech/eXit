@@ -3,10 +3,11 @@ module eXit
 go 1.22.5
 
 require (
-	github.com/ZachLTech/ansify v0.0.0-20241122033751-2835713deffa
+	github.com/ZachLTech/ansify v0.0.0-20241126005148-0699a594feb2
 	github.com/charmbracelet/bubbletea v1.2.3
+	github.com/charmbracelet/log v0.4.0
+	github.com/charmbracelet/ssh v0.0.0-20240725163421-eb71b85b27aa
 	github.com/charmbracelet/wish v1.4.3
-	github.com/gliderlabs/ssh v0.3.7
 )
 
 require (
@@ -14,8 +15,6 @@ require (
 	github.com/aymanbagabas/go-osc52/v2 v2.0.1 // indirect
 	github.com/charmbracelet/keygen v0.5.1 // indirect
 	github.com/charmbracelet/lipgloss v1.0.0 // indirect
-	github.com/charmbracelet/log v0.4.0 // indirect
-	github.com/charmbracelet/ssh v0.0.0-20240725163421-eb71b85b27aa // indirect
 	github.com/charmbracelet/x/ansi v0.4.5 // indirect
 	github.com/charmbracelet/x/conpty v0.1.0 // indirect
 	github.com/charmbracelet/x/errors v0.0.0-20240508181413-e8d8b6e2de86 // indirect
