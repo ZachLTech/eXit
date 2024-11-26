@@ -217,22 +217,23 @@ func processANSIArt(imageInput string, termWidth int) ([]string, error, tea.Cmd)
 	return lines, nil, nil
 }
 
-func openBrowser(url string) error {
-	var err error
+type editorFinishedMsg struct{ err error }
+
+func openBrowser(url string) tea.Cmd {
+	var cmd *exec.Cmd
 
 	switch runtime.GOOS {
 	case "linux":
-		err = exec.Command("xdg-open", url).Start()
+		cmd = exec.Command("xdg-open", url)
 	case "windows":
-		err = exec.Command("cmd", "/c", "start", url).Start()
+		cmd = exec.Command("cmd", "/c", "start", url)
 	case "darwin":
-		err = exec.Command("open", url).Start()
+		cmd = exec.Command("open", url)
 	default:
-		err = fmt.Errorf("unsupported platform")
+		return nil
 	}
 
-	if err != nil {
-		return fmt.Errorf("error opening browser: %v", err)
-	}
-	return nil
+	return tea.ExecProcess(cmd, func(err error) tea.Msg {
+		return editorFinishedMsg{err}
+	})
 }

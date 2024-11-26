@@ -63,8 +63,10 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 
 	case easterEggTickMsg:
 		fmt.Printf("Hello Elliot... Redirecting to https://www.youtube.com/watch?v=g_Miz2ZqSI4")
-		openBrowser("https://www.youtube.com/watch?v=g_Miz2ZqSI4")
-		cmd = tea.Quit
+		cmd = tea.Batch(
+			openBrowser("https://www.youtube.com/watch?v=g_Miz2ZqSI4"),
+			tea.Quit,
+		)
 
 	case tea.WindowSizeMsg:
 		m.termWidth = msg.Width
