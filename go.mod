@@ -3,7 +3,7 @@ module eXit
 go 1.22.5
 
 require (
-	github.com/ZachLTech/ansify v0.0.0-20241126005148-0699a594feb2
+	github.com/ZachLTech/ansify v0.0.0-20241126010828-1446284a5133
 	github.com/charmbracelet/bubbletea v1.2.3
 	github.com/charmbracelet/log v0.4.0
 	github.com/charmbracelet/ssh v0.0.0-20240725163421-eb71b85b27aa

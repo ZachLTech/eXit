@@ -102,7 +102,7 @@ var defaultAnimationMPF time.Duration = 30
 var defaultAnimationFrames int = 3
 
 var prompts = map[string]string{
-	"dungeon":         "You're trapped in a dungeon with your friend. You see a barrel. What do you do?\n\n> ",
+	"dungeon":         "You're trapped in a dungeon with your friend.\n You see a barrel. What do you do?\n\n> ",
 	"secretTunnel":    "The barrel rolls aside and you find a secret tunnel\nWhat do you do?\n\n> ",
 	"friendTooWeak":   "You start to escape but your friend is too weak to\ngo with you. They hand you a note.\nWhat do you do?\n\n> ",
 	"friendHandsNote": "It is too dark to read the note.\nWhat do you do?\n\n> ",
@@ -330,7 +330,7 @@ func (m model) handleInput(userInput string) (string, string, []string, bool, te
 				prompt = "You move the barrel, find a secret tunnel, and crawl through it.\nThe tunnel leads you to a beach. What do you do?\n\n> "
 			}
 		}
-	} else if userInput == "look" || userInput == "look around" && m.currentScene == "beach" {
+	} else if (userInput == "look" || userInput == "look around") && (m.currentScene == "beach") {
 		scene = "ship"
 	} else if userInput == "get on the boat" || userInput == "get on boat" || userInput == "get on" && m.currentScene == "ship" {
 		scene = "congratulations"
