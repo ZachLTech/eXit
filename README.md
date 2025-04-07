@@ -2,11 +2,11 @@
 
 # eXit - A Terminal-based Game Recreation from *Mr. Robot*
 
-Welcome to **eXit**, a faithful recreation of the terminal-based game featured in *Mr. Robot* (S4E11). This project is built using [Go](https://golang.org) and the [Bubble Tea](https://github.com/charmbracelet/bubbletea) framework for a nostalgic yet modern terminal experience. 
+Welcome to **eXit**, a fan recreation of the terminal-based game featured in *Mr. Robot* (S4E11). This project is built using [Go](https://golang.org) and the [Bubble Tea](https://github.com/charmbracelet/bubbletea) framework. 
 
 Not only does this game stay true to the original look and feel from the show, but it also includes hidden **easter eggs** that fans of *Mr. Robot* will appreciate. Additionally, I've utilized [Ansify](https://github.com/ZachLTech/Ansify), one of my other projects, to convert key scenes from *Mr. Robot* into terminal-friendly ANSI images, creating an immersive and authentic gameplay environment.
 
-Soon, the game will support SSH access via Docker containers, allowing anyone to play directly from their own terminal!
+To play this game yourself, simply run `ssh -p 24 zachl.tech` in your terminal.
 
 ## 🚀 Features
 
@@ -68,10 +68,9 @@ This project integrates with [Ansify](https://github.com/ZachLTech/Ansify) to co
 
 If you'd like to customize the game’s scenes or add your own, you can use [Ansify](https://github.com/ZachLTech/Ansify) to convert images into ANSI format, ensuring they are compatible with the terminal interface.
 
-## 🖥️ SSH Access (Coming Soon!)
+## 🖥️ SSH Access
 
-I’m currently working on Docker-based SSH support so you can play *eXit* directly from your terminal.
-Stay tuned for updates on SSH support!
+Run `ssh -p 24 zachl.tech` in your terminal to play eXit!
 
 ## 🌌 Future Plans
 
